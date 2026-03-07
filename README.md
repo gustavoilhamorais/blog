@@ -60,6 +60,23 @@ pnpm dev
 pnpm build
 ```
 
+### Deploy with Docker Compose
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+The production deployment uses a multi-stage Docker build. Vite generates the static bundle, then `nginx` serves the baked files on port `80`.
+
+Important defaults:
+
+- `index.html` is served with `Cache-Control: no-store`
+- hashed files under `/assets/` are served with `Cache-Control: public, max-age=31536000, immutable`
+- client-side routes fall back to `index.html`
+- the container exposes a `/healthz` endpoint for health checks
+- this setup assumes TLS and volumetric DDoS protection are handled by an upstream edge or load balancer
+
 ### Preview the Production Build
 
 ```bash
