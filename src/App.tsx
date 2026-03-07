@@ -150,7 +150,7 @@ function BlogShell() {
             type="button"
             onClick={() => {
               window.scrollTo(0, 0)
-              navigate('/')
+              void navigate('/')
             }}
             className={`text-sm font-semibold tracking-[0.2em] ${titleClass}`}
           >
