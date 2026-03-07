@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { type Post } from '../data/posts'
+import { type PostSummary } from '../lib/posts'
 import {
   getPostMotionIds,
   pageTransition,
@@ -9,7 +9,7 @@ import {
 } from '../lib/blogMotion'
 import { useTheme } from '../theme-context'
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({ post }: { post: PostSummary }) {
   const { theme } = useTheme()
   const shouldReduceMotion = useReducedMotion()
   const motionIds = getPostMotionIds(post.slug)

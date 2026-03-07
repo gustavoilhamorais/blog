@@ -1,13 +1,13 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { posts } from '../data/posts'
+import { fixturePosts } from '../test/post-fixtures'
 import { ThemeProvider } from '../theme'
 import { renderWithRouter } from '../test/render'
 import { PostCard } from './PostCard'
 
 describe('PostCard', () => {
   it('renders the post title, metadata, excerpt, and read link', () => {
-    const post = posts[0]
+    const post = fixturePosts[0]
 
     renderWithRouter(
       <ThemeProvider>
@@ -22,6 +22,6 @@ describe('PostCard', () => {
     expect(screen.getByText(post.excerpt)).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: `Read ${post.title}` }),
-    ).toHaveAttribute('href', `/posts/${post.slug}`)
+    ).toHaveAttribute('href', `/blog/posts/${post.slug}`)
   })
 })

@@ -1,6 +1,6 @@
 # Gus Blog
 
-A small editorial blog built with React, TypeScript, and Vite. The app ships a minimalist landing page, animated post cards, post detail routes, a persisted light/dark theme toggle, and a Vitest + React Testing Library test suite.
+A small editorial blog built with React, TypeScript, and Vite. The app ships a minimalist landing page, animated post cards, post detail routes, a persisted light/dark theme toggle, runtime-fetched Markdown posts, and a Vitest + React Testing Library test suite.
 
 ## Technology Stack
 
@@ -18,21 +18,22 @@ A small editorial blog built with React, TypeScript, and Vite. The app ships a m
 
 This is a client-side single-page application.
 
-- [`src/main.tsx`](./src/main.tsx) boots the app and mounts `BrowserRouter`.
+- [`src/main.tsx`](./src/main.tsx) boots the app and mounts `BrowserRouter` with the `/blog` base path.
 - [`src/App.tsx`](./src/App.tsx) contains the app shell and route composition.
 - [`src/theme.tsx`](./src/theme.tsx) owns theme state and persistence.
 - [`src/theme-context.ts`](./src/theme-context.ts) contains the theme context and hook.
 - [`src/components/`](./src/components) contains reusable UI pieces such as the theme toggle and post cards.
 - [`src/routes/`](./src/routes) contains the route-level screens.
-- [`src/data/posts.ts`](./src/data/posts.ts) stores the current post content and lookup map.
+- [`src/lib/config.ts`](./src/lib/config.ts) resolves the `/blog` runtime configuration.
+- [`src/lib/posts.ts`](./src/lib/posts.ts) fetches the post manifest and Markdown bodies.
 - [`src/index.css`](./src/index.css) loads Tailwind and sets the base typography/layout rules.
 - [`src/test/`](./src/test) contains shared test setup and render helpers.
 - [`vite.config.ts`](./vite.config.ts) enables the React and Tailwind Vite plugins plus Vitest config.
 
-Routing is simple and local:
+Routing is simple and local under the `/blog` base path:
 
-- `/` renders the post index.
-- `/posts/:slug` renders a single post view.
+- `/blog/` renders the post index.
+- `/blog/posts/:slug` renders a single post view.
 - Unknown routes redirect back to `/`.
 
 ## Getting Started
@@ -54,6 +55,8 @@ pnpm install
 pnpm dev
 ```
 
+The Vite development server runs the UI, while Markdown content is expected at `http://localhost:80/blog/posts`. Set `VITE_BLOG_POSTS_ENDPOINT` if you need a different dev endpoint.
+
 ### Create a Production Build
 
 ```bash
@@ -67,15 +70,61 @@ docker compose build
 docker compose up -d
 ```
 
-The production deployment uses a multi-stage Docker build. Vite generates the static bundle, then `nginx` serves the baked files on port `80`.
+The production deployment uses a multi-stage Docker build. Vite generates the static bundle, then `nginx` serves the baked files on port `80` under `/blog` and exposes Markdown posts from a named Docker volume at `/blog/posts`.
 
 Important defaults:
 
-- `index.html` is served with `Cache-Control: no-store`
-- hashed files under `/assets/` are served with `Cache-Control: public, max-age=31536000, immutable`
-- client-side routes fall back to `index.html`
+- `/blog/index.html` is served with `Cache-Control: no-store`
+- hashed files under `/blog/assets/` are served with `Cache-Control: public, max-age=31536000, immutable`
+- `/blog/posts/index.json` is served with `Cache-Control: no-store`
+- `/blog/posts/*.md` is served with `Cache-Control: public, max-age=300, must-revalidate`
+- client-side routes under `/blog` fall back to `index.html`
 - the container exposes a `/healthz` endpoint for health checks
 - this setup assumes TLS and volumetric DDoS protection are handled by an upstream edge or load balancer
+- IP-based nginx rate limiting is intentionally disabled until trusted proxy `real_ip` settings are defined
+
+Environment values:
+
+- `BLOG_POSTS_ENDPOINT`: runtime endpoint injected into `/blog/runtime-config.js`
+- `VITE_BLOG_POSTS_ENDPOINT`: Vite dev fallback for local UI development
+
+### Posts Volume Layout
+
+The named volume mounted at `/srv/blog-posts` must contain:
+
+```text
+index.json
+building-calm-software.md
+notes-on-minimalism.md
+```
+
+`index.json` must be an array of summaries:
+
+```json
+[
+  {
+    "slug": "building-calm-software",
+    "title": "Building calm software",
+    "excerpt": "A few notes on making products that feel small, fast, and focused.",
+    "date": "2026-03-07",
+    "readingTime": "4 min read",
+    "tag": "Product"
+  }
+]
+```
+
+Each Markdown file is loaded from `/blog/posts/<slug>.md`.
+
+### Seed the Named Volume
+
+Create and inspect the volume:
+
+```bash
+docker volume create blog_blog_posts
+docker run --rm -it -v blog_blog_posts:/posts alpine sh
+```
+
+Inside that shell, create `index.json` and one or more `.md` files under `/posts`, then start the app with `docker compose up -d`.
 
 ### Preview the Production Build
 
@@ -114,7 +163,7 @@ pnpm test:coverage
 ├── public/              Static public assets
 ├── src/
 │   ├── components/      Reusable UI components
-│   ├── data/            Post content and content types
+│   ├── lib/             Runtime config and post-fetching helpers
 │   ├── routes/          Route-level screens
 │   ├── test/            Shared Vitest and RTL helpers
 │   ├── App.tsx          App shell and route composition
@@ -132,7 +181,7 @@ pnpm test:coverage
 ## Key Features
 
 - Minimal blog homepage with editorial hero copy
-- Individual post pages resolved from slug-based routes
+- Individual post pages resolved from slug-based routes and loaded from Markdown
 - Shared-layout motion between list and detail views
 - Persisted theme toggle using `localStorage`
 - Theme initialization that respects system color preference
@@ -144,11 +193,11 @@ pnpm test:coverage
 The current workflow is intentionally small:
 
 1. Install dependencies with `pnpm install`.
-2. Build features in `src/routes`, `src/components`, `src/theme.tsx`, `src/theme-context.ts`, `src/data/posts.ts`, and `src/index.css`.
+2. Build features in `src/routes`, `src/components`, `src/lib`, `src/theme.tsx`, `src/theme-context.ts`, and `src/index.css`.
 3. Run `pnpm lint` and `pnpm test` before committing.
 4. Run `pnpm build` to verify the production bundle.
 
-There is no documented branching model in the repository today. The app is also using local in-repo content rather than a CMS or API.
+There is no documented branching model in the repository today. The app now expects a Docker-mounted posts directory rather than in-repo post bodies.
 
 ## Coding Standards
 
@@ -171,7 +220,7 @@ Current quality checks:
 
 Current test coverage focuses on:
 
-- route rendering for `/`, `/posts/:slug`, and redirect behavior
+- route rendering for `/blog/`, `/blog/posts/:slug`, and redirect behavior
 - navigation flows between the index and post detail views
 - theme toggle behavior and `localStorage` persistence
-- post card rendering and route link correctness
+- post card rendering, runtime config resolution, and route link correctness

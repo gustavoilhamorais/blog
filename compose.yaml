@@ -2,6 +2,8 @@ services:
   web:
     build:
       context: .
+    environment:
+      BLOG_POSTS_ENDPOINT: ${BLOG_POSTS_ENDPOINT:-http://localhost:80/blog/posts}
     ports:
       - "80:80"
     restart: unless-stopped
@@ -23,3 +25,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    volumes:
+      - blog_posts:/srv/blog-posts:ro
+
+volumes:
+  blog_posts:

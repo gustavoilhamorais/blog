@@ -20,7 +20,9 @@ RUN pnpm build
 FROM nginx:1.29-alpine AS runtime
 
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY docker/nginx/runtime-config.template.js /opt/blog/runtime-config.template.js
+COPY docker/nginx/40-generate-runtime-config.sh /docker-entrypoint.d/40-generate-runtime-config.sh
+COPY --from=build /app/dist /usr/share/nginx/html/blog
 
 EXPOSE 80
 STOPSIGNAL SIGQUIT

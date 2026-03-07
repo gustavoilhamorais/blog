@@ -75,7 +75,7 @@ function BlogShell() {
               >
                 <Routes location={location}>
                   <Route path="/" element={<HomePage />} />
-                  <Route path="/posts/:slug" element={<PostPage />} />
+                  <Route path="posts/:slug" element={<PostPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </motion.div>

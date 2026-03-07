@@ -2,6 +2,7 @@ import { cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import React from 'react'
 import { afterEach, vi } from 'vitest'
+import { resetPostsCache } from '../lib/posts'
 import { THEME_STORAGE_KEY } from '../theme-context'
 
 type MotionProps = Record<string, unknown> & {
@@ -82,10 +83,16 @@ Object.defineProperty(window, 'scrollTo', {
   value: vi.fn(),
 })
 
+vi.stubGlobal('fetch', vi.fn())
+
 afterEach(() => {
   cleanup()
   window.localStorage.clear()
   window.localStorage.removeItem(THEME_STORAGE_KEY)
+  window.__BLOG_CONFIG__ = {
+    postsEndpoint: 'http://localhost:80/blog/posts',
+  }
+  resetPostsCache()
   vi.clearAllMocks()
   window.matchMedia = createMatchMedia()
   window.scrollTo = vi.fn()

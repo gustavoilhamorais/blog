@@ -1,16 +1,48 @@
+import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { PostCard } from '../components/PostCard'
-import { posts } from '../data/posts'
 import { pageTransition } from '../lib/blogMotion'
+import { fetchPostManifest, type PostSummary } from '../lib/posts'
 import { useTheme } from '../theme-context'
 
 export function HomePage() {
   const { theme } = useTheme()
   const shouldReduceMotion = useReducedMotion()
+  const [posts, setPosts] = useState<PostSummary[]>([])
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
   const mutedText = theme === 'dark' ? 'text-stone-300' : 'text-stone-500'
   const bodyText = theme === 'dark' ? 'text-stone-300' : 'text-stone-600'
   const titleClass = theme === 'dark' ? 'text-stone-50' : 'text-stone-900'
+  const panelClass =
+    theme === 'dark'
+      ? 'border-stone-700/70 bg-stone-900/80 text-stone-200'
+      : 'border-rose-200/80 bg-white/80 text-stone-600'
+
+  useEffect(() => {
+    let isActive = true
+
+    void fetchPostManifest()
+      .then((nextPosts) => {
+        if (!isActive) {
+          return
+        }
+
+        setPosts(nextPosts)
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (!isActive) {
+          return
+        }
+
+        setStatus('error')
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   return (
     <motion.div
@@ -56,9 +88,21 @@ export function HomePage() {
         transition={shouldReduceMotion ? { duration: 0.1 } : pageTransition}
         className="mt-14 grid gap-5"
       >
-        {posts.map((post) => (
-          <PostCard key={post.slug} post={post} />
-        ))}
+        {status === 'loading' && (
+          <div className={`rounded-[2rem] border p-6 ${panelClass}`}>
+            Loading posts from Markdown...
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className={`rounded-[2rem] border p-6 ${panelClass}`}>
+            <p>Posts are unavailable right now.</p>
+            <p className="mt-2 text-sm">Check the posts volume and manifest.</p>
+          </div>
+        )}
+
+        {status === 'ready' &&
+          posts.map((post) => <PostCard key={post.slug} post={post} />)}
       </motion.section>
     </motion.div>
   )
