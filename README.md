@@ -115,6 +115,53 @@ notes-on-minimalism.md
 
 Each Markdown file is loaded from `/blog/posts/<slug>.md`.
 
+### Add a Post Through the nginx Markdown Pipeline
+
+Posts are not bundled into the React app. `nginx` serves them directly from the read-only volume mounted at `/srv/blog-posts`, so publishing a new post means updating the files in that volume.
+
+Use this workflow:
+
+1. Pick a slug such as `shipping-small-products`.
+2. Add a new entry to `/srv/blog-posts/index.json` with the same slug and the card metadata you want to show on the homepage.
+3. Create `/srv/blog-posts/shipping-small-products.md` with the full Markdown body.
+4. Restart the container only if it is not already running. You do not need to rebuild the image for content-only changes.
+5. Open `/blog/` to verify the new card appears, then open `/blog/posts/shipping-small-products` to verify the Markdown page loads.
+
+Example manifest entry:
+
+```json
+{
+  "slug": "shipping-small-products",
+  "title": "Shipping small products",
+  "excerpt": "Why tighter scope usually leads to better software.",
+  "date": "2026-03-07",
+  "readingTime": "5 min read",
+  "tag": "Engineering"
+}
+```
+
+Example Markdown file:
+
+```md
+# Shipping small products
+
+The fastest way to ship better software is usually to cut scope earlier.
+
+## Why this works
+
+- Smaller releases are easier to review.
+- Smaller releases are easier to test.
+- Smaller releases are easier to undo.
+```
+
+Important details:
+
+- The `slug` in `index.json` must exactly match the Markdown filename without the `.md` extension.
+- `index.json` is fetched from `/blog/posts/index.json`.
+- Post bodies are fetched from `/blog/posts/<slug>.md`.
+- `index.json` is served with `Cache-Control: no-store`, so manifest changes should appear on the next request.
+- Markdown files are served with `Cache-Control: public, max-age=300, must-revalidate`, so body updates may take up to five minutes to refresh unless the client revalidates sooner.
+
 ### Seed the Named Volume
 
 Create and inspect the volume:
@@ -125,6 +172,14 @@ docker run --rm -it -v blog_blog_posts:/posts alpine sh
 ```
 
 Inside that shell, create `index.json` and one or more `.md` files under `/posts`, then start the app with `docker compose up -d`.
+
+If the container is already running, you can update the same volume in a one-off shell:
+
+```bash
+docker run --rm -it -v blog_blog_posts:/posts alpine sh
+```
+
+Edit `/posts/index.json` and add `/posts/<slug>.md`, then refresh the site. This updates the content source that `nginx` already exposes at `/blog/posts`.
 
 ### Preview the Production Build
 
