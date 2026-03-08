@@ -1,10 +1,12 @@
 import { createContext, useContext } from 'react'
 
 export type Theme = 'light' | 'dark'
+export type ThemePreference = 'system' | Theme
 
 export type ThemeContextValue = {
   theme: Theme
-  toggleTheme: () => void
+  themePreference: ThemePreference
+  setThemePreference: (themePreference: ThemePreference) => void
 }
 
 export const THEME_STORAGE_KEY = 'minimalist-blog-theme'
