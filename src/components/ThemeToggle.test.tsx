@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { THEME_STORAGE_KEY } from '../theme-context'
@@ -27,18 +27,21 @@ function mockSystemTheme(matches: boolean) {
 }
 
 describe('ThemeToggle', () => {
-  it('shows the dark label by default and toggles to light', async () => {
+  it('defaults to the system option and persists explicit changes', async () => {
     const user = userEvent.setup()
 
     renderThemeToggle()
 
-    const button = screen.getByRole('button', { name: 'Toggle theme' })
+    const trigger = screen.getByRole('button', { name: 'Theme' })
 
-    expect(button).toHaveTextContent('Dark')
+    expect(trigger).toHaveTextContent('System')
 
-    await user.click(button)
+    await user.click(trigger)
+    await user.click(screen.getByRole('option', { name: /dark/i }))
 
-    expect(button).toHaveTextContent('Light')
+    expect(screen.getByRole('button', { name: 'Theme' })).toHaveTextContent(
+      'Dark',
+    )
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
   })
 
@@ -48,18 +51,101 @@ describe('ThemeToggle', () => {
 
     renderThemeToggle()
 
-    expect(screen.getByRole('button', { name: 'Toggle theme' })).toHaveTextContent(
-      'Dark',
+    expect(screen.getByRole('button', { name: 'Theme' })).toHaveTextContent(
+      'Light',
     )
   })
 
-  it('falls back to the system preference when there is no saved theme', () => {
-    mockSystemTheme(true)
+  it('shows all theme options when the menu opens', async () => {
+    const user = userEvent.setup()
 
     renderThemeToggle()
 
-    expect(screen.getByRole('button', { name: 'Toggle theme' })).toHaveTextContent(
+    await user.click(screen.getByRole('button', { name: 'Theme' }))
+
+    expect(screen.getByRole('listbox', { name: 'Theme options' })).toBeVisible()
+    expect(screen.getByRole('option', { name: /system/i })).toBeVisible()
+    expect(screen.getByRole('option', { name: /light/i })).toBeVisible()
+    expect(screen.getByRole('option', { name: /dark/i })).toBeVisible()
+  })
+
+  it('closes on escape and outside click', async () => {
+    const user = userEvent.setup()
+
+    renderThemeToggle()
+
+    await user.click(screen.getByRole('button', { name: 'Theme' }))
+    expect(screen.getByRole('listbox', { name: 'Theme options' })).toBeVisible()
+
+    fireEvent.keyDown(screen.getByRole('option', { name: /system/i }), {
+      key: 'Escape',
+    })
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('listbox', { name: 'Theme options' }),
+      ).not.toBeInTheDocument(),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Theme' }))
+    expect(screen.getByRole('listbox', { name: 'Theme options' })).toBeVisible()
+
+    await user.click(document.body)
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('listbox', { name: 'Theme options' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it('supports keyboard navigation and selection', async () => {
+    const user = userEvent.setup()
+
+    renderThemeToggle()
+
+    const trigger = screen.getByRole('button', { name: 'Theme' })
+
+    trigger.focus()
+    await user.keyboard('{ArrowDown}')
+    await user.keyboard('{ArrowDown}')
+    await user.keyboard('{Enter}')
+
+    expect(screen.getByRole('button', { name: 'Theme' })).toHaveTextContent(
       'Light',
     )
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+  })
+
+  it('keeps following system changes while system is selected', async () => {
+    let matches = false
+    let listener: ((event: MediaQueryListEvent) => void) | undefined
+
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(
+        (_eventName: string, callback: (event: MediaQueryListEvent) => void) => {
+          listener = callback
+        },
+      ),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+
+    renderThemeToggle()
+
+    const trigger = screen.getByRole('button', { name: 'Theme' })
+
+    expect(trigger).toHaveTextContent('System')
+
+    matches = true
+    listener?.({ matches } as MediaQueryListEvent)
+
+    await waitFor(() => expect(trigger).toHaveClass('border-stone-700/80'))
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('system')
   })
 })

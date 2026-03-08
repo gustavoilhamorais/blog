@@ -76,7 +76,8 @@ export function HomePage() {
         </h1>
         <p className={`mt-6 max-w-xl text-base leading-8 ${bodyText}`}>
           A clean blog layout with just enough structure: a strong headline,
-          readable cards, and a theme toggle that respects system preference.
+          readable cards, and a theme menu that can follow the system or force
+          light and dark modes.
         </p>
       </motion.section>
 
