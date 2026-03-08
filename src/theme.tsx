@@ -25,23 +25,18 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       ? saved
       : 'system'
   })
-  const [theme, setTheme] = useState<Theme>(() =>
-    typeof window === 'undefined'
-      ? 'light'
-      : themePreference === 'system'
-        ? getSystemTheme()
-        : themePreference,
+  const [systemTheme, setSystemTheme] = useState<Theme>(() =>
+    typeof window === 'undefined' ? 'light' : getSystemTheme(),
   )
 
   useEffect(() => {
-    if (themePreference !== 'system') {
-      setTheme(themePreference)
+    if (themePreference !== 'system' || typeof window === 'undefined') {
       return
     }
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const syncSystemTheme = () => {
-      setTheme(getSystemTheme())
+      setSystemTheme(getSystemTheme())
     }
 
     syncSystemTheme()
@@ -51,6 +46,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       mediaQuery.removeEventListener('change', syncSystemTheme)
     }
   }, [themePreference])
+
+  const theme = themePreference === 'system' ? systemTheme : themePreference
 
   const value = useMemo<ThemeContextValue>(
     () => ({
