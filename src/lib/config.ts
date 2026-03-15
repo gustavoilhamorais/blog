@@ -1,5 +1,5 @@
 export const BLOG_BASE_PATH = '/blog'
-const DEFAULT_POSTS_ENDPOINT = 'http://localhost:80/blog/posts'
+const DEFAULT_POSTS_ENDPOINT = `${BLOG_BASE_PATH}/posts`
 
 declare global {
   interface Window {

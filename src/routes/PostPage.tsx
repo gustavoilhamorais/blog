@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
+import { PostContent } from '../components/PostContent'
 import {
   getPostMotionIds,
   pageTransition,
@@ -113,7 +112,7 @@ export function PostPage() {
               theme === 'dark' ? 'text-stone-300' : 'text-stone-500'
             }`}
           >
-            Verify the Markdown file exists in the posts volume.
+            Verify the Markdown file exists at the configured posts endpoint.
           </p>
         </div>
       </motion.article>
@@ -150,7 +149,6 @@ export function PostPage() {
     theme === 'dark'
       ? 'border-stone-700/80 bg-stone-800/70 text-stone-200'
       : 'border-rose-200/80 text-stone-700'
-  const proseClass = theme === 'dark' ? 'text-stone-300' : 'text-stone-600'
 
   return (
     <motion.article
@@ -240,12 +238,7 @@ export function PostPage() {
         }
         className="mt-10 space-y-6"
       >
-        <div className={`prose prose-stone max-w-none ${proseClass}`}>
-          {/** ReactMarkdown is rendered inside the animated container to keep route transitions intact. */}
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {post.content}
-          </ReactMarkdown>
-        </div>
+        <PostContent content={post.content} theme={theme} />
       </motion.section>
     </motion.article>
   )

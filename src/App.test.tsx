@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fixtureMarkdownBySlug, fixturePosts } from './test/post-fixtures'
@@ -85,20 +85,52 @@ describe('App routes', () => {
     ).toBeInTheDocument()
     expect(screen.getByText(post.excerpt)).toBeInTheDocument()
     expect(
-      screen.getByText('Thoughtful software feels quiet.'),
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'Signals of calm',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Thoughtful software feels quiet'),
     ).toBeInTheDocument()
     expect(screen.getByText('It stays focused')).toBeInTheDocument()
+    expect(screen.getByText('small steps')).toHaveClass('rounded-md')
+    expect(
+      screen.getByRole('link', { name: 'the field notes' }),
+    ).toHaveAttribute('href', 'https://example.com/field-notes')
+    expect(screen.getByRole('table')).toBeInTheDocument()
   })
 
   it('redirects an unknown post slug back to the home route', async () => {
     renderApp(['/posts/not-a-real-post'])
 
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Minimal writing, generous whitespace.',
+        }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('renders markdown lists with visible hierarchy', async () => {
+    const post = fixturePosts[0]
+
+    renderApp([`/posts/${post.slug}`])
+
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: 'Minimal writing, generous whitespace.',
+        name: post.title,
       }),
     ).toBeInTheDocument()
+    const [unorderedList, orderedList] = screen.getAllByRole('list')
+
+    expect(unorderedList).toHaveClass('list-disc')
+    expect(orderedList).toHaveClass('list-decimal')
+    expect(screen.getByText('Remove distractions.')).toBeInTheDocument()
+    expect(screen.getByText(/shipQuietly/)).toBeInTheDocument()
   })
 
   it('redirects an unknown route back to the home route', () => {

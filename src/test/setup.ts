@@ -89,9 +89,7 @@ afterEach(() => {
   cleanup()
   window.localStorage.clear()
   window.localStorage.removeItem(THEME_STORAGE_KEY)
-  window.__BLOG_CONFIG__ = {
-    postsEndpoint: 'http://localhost:80/blog/posts',
-  }
+  window.__BLOG_CONFIG__ = undefined
   resetPostsCache()
   vi.clearAllMocks()
   window.matchMedia = createMatchMedia()
